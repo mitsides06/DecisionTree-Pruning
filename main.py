@@ -1,6 +1,6 @@
 """
 Introduction to Machine Learning
-CW1
+CW1 test 
 """
 import numpy as np
 import matplotlib.pyplot as plt
