@@ -8,8 +8,13 @@ import matplotlib.pyplot as plt
 
 
 # Step 1: Loading data
-data_clean = np.loadtxt("wifi_db/clean_dataset.txt")
-data_noisy = np.loadtxt("wifi_db/noisy_dataset.txt")
+try:
+    data_clean = np.loadtxt("wifi_db/clean_dataset.txt")
+    data_noisy = np.loadtxt("wifi_db/noisy_dataset.txt")
+except FileNotFoundError:
+    print("Error: Pathnames do not point to existing files")
+except ValueError:
+    print("Error: File contents invalid. Check for common errors such as inconsistent delimiters, number of cols, or missing elements.")
 
 
 
