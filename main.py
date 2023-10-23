@@ -17,6 +17,16 @@ noisy_data = np.loadtxt("wifi_db/noisy_dataset.txt")	# should process the labels
 
 # Step 2: Creating Decision Trees
 def entropy(data):
+    """
+    Calculate the entropy of the data
+
+    Args:
+        data (list): dataset
+
+    Returns:
+        numpy.float64: entropy value 
+    """
+
     labels = data[:, -1]
     _, counts = np.unique(labels, return_counts=True)
     probs = counts / len(labels)
@@ -24,10 +34,32 @@ def entropy(data):
 
 
 def gain(s_all, s_left, s_right):
+    """
+    Calculate the information gain of the subsets (s_left, s_right) associated with the dataset (s_all)
+
+    Args:
+        s_all (list): dataset
+        s_left (list): subset on the left
+        s_right (list): subset on the right 
+
+    Returns:
+        numpy.float64: information gain: the difference between the initial entropy and the average entropy of the produced subsets
+    """
+
     return entropy(s_all) - (len(s_left)/len(s_all)*entropy(s_left) + len(s_right)/len(s_all)*entropy(s_right))
 
 
 def find_split(data):
+    """
+    Chooses the attribute and the value that results in the highest information gain
+
+    Args:
+        data (list): the dataset
+
+    Returns:
+        tuple: (an attribute of the dateset, optimal value to split in the attribute)
+    """
+
     best_gain = 0
     best_split = None
 
@@ -47,6 +79,17 @@ def find_split(data):
 
 
 def decision_tree_learning(data, depth=0):
+    """
+    Recursive Decision Tree Algorithm
+
+    Args:
+        data (list): dataset
+        depth (int, optional): the depth of the node. Defaults to 0.
+
+    Returns:
+        dict: decision tree
+    """
+
     labels = data[:, -1]
     if len(np.unique(labels)) == 1:
         return {"leaf": True, "label": data[0, -1]}, depth  # removed "depth" from the dictionary, and put it as an element in a 2-tuple as our function should return (node, depth)
@@ -79,6 +122,17 @@ def get_right_split_data(data, feature, value):
 
 # Step 3: Classification & Evaluation
 def classify(instance, tree):
+    """
+    Classification function to classify instances in the tree
+
+    Args:
+        instance (list): a testing example
+        tree (dictionary): decision tree
+
+    Returns:
+        int: the label
+    """
+
     if tree["leaf"]:
         return tree["label"]
     
@@ -89,6 +143,17 @@ def classify(instance, tree):
 
 
 def evaluate(test_data, tree):
+    """
+    Evaluation of the algorithm
+
+    Args:
+        test_data (list): a list of example testing data
+        tree (dictionary): decision tree
+
+    Returns:
+        float: percentage of accuracy
+    """
+
     correct = 0
     for instance in test_data:
         prediction = classify(instance[:-1], tree)
