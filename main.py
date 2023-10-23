@@ -160,16 +160,21 @@ def evaluate(test_data, tree):
             correct += 1
     return correct / len(test_data)
 
-def accuracy(test_data, tree):
-    correct = 0
-    for instance in test_data:
-        prediction = classify(instance[:-1], tree)
-        
-        if prediction == instance[-1]:
-            correct += 1
-    
-    return correct / len(test_data)
 
+def confusion_matrix(training_data, testing_data, training_tree):
+    """
+    Find out the confusion matrix
+
+    Args:
+        training_data (list): training data
+        testing_data (_type_): test data
+        training_tree (_type_): decision tree trained on training data
+        
+    Returns:
+        2D list: confusion matrix
+    """
+    
+    pass
 
 
 def cross_validation(data, k=10):
