@@ -5,6 +5,7 @@ CW1
 import numpy as np
 import matplotlib.pyplot as plt
 import pprint
+import random
 
 
 
@@ -118,8 +119,6 @@ def get_right_split_data(data, feature, value):
 	return data[data[:, feature] >= value]
 
 
-
-
 # Step 3: Classification & Evaluation
 def classify(instance, tree):
     """
@@ -161,8 +160,70 @@ def evaluate(test_data, tree):
             correct += 1
     return correct / len(test_data)
 
+def accuracy(test_data, tree):
+    correct = 0
+    for instance in test_data:
+        prediction = classify(instance[:-1], tree)
+        
+        if prediction == instance[-1]:
+            correct += 1
+    
+    return correct / len(test_data)
 
 
+
+def cross_validation(data, k=10):
+    """
+    1. Shuffle the data
+    2. Split it into k-fold
+    3. Train k times with k-1 folds as training data
+    4. Evaluate (Confusion Matrix, Accuracy, Precision, Recall, F-1) each time with k fold as the testing data
+
+    Args:
+        data (2D list): dataset
+        k (int, optional): number of folds. Defaults to 10.
+
+    Returns:
+        tuple: (average_confusion_matrix, average_accuracy, average_precision_per_class, average_recall_per_class, F-1)
+    """
+    
+    shuffled_data = data
+    
+    # Setting the random seed
+    np.random.seed(0)
+    
+    # Randomly shuffling the dataset
+    np.random.shuffle(shuffled_data)
+    
+    # Separating into k folds
+    fold_size = len(shuffled_data) // k
+    remainder = len(shuffled_data) % k
+    folds = []
+
+    start = 0
+    for i in range(k):
+        end = start + fold_size + (1 if i < remainder else 0)
+        fold = shuffled_data[start:end]
+        folds.append(fold)
+        start = end
+      
+    # Storing metrics
+    confusion_matrices = []
+    accuracies = []
+    precision = []
+    recall = []
+    f_1 = []
+    
+    for i in range(len(folds)):
+        
+        testing_data = folds[i]
+        training_data = np.delete(folds, i, 0)
+        
+        training_tree, depth = decision_tree_learning(training_data)
+        
+        
+        
+    
 
 # Step 4:
 def is_node_connected_to_leaves(node):
@@ -267,41 +328,40 @@ def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None):
     return x
 
 
-
 if __name__ == "__main__":
-	# Example usage:
-	train_data = clean_data
-	validation_data = noisy_data
-
-	#train_data = data_clean[:int(len(clean_data) * 0.7)]
-	#validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
-	#test_data = data_clean[int(len(clean_data) * 0.85):]
-
-	# Create the decision tree
-	tree, depth = decision_tree_learning(train_data)
-
-	# Evaluate the original tree
-	accuracy = evaluate(train_data, tree)
-	print("Accuracy of original tree on train_data:", accuracy)
-	accuracy = evaluate(validation_data, tree)
-	print("Accuracy of original tree on validation_data:", accuracy)
-	#pprint.pp(tree)
-	print()
-	plot_tree(tree)
-
-	# Prune the tree
-	node = tree
-	subset_train_data = train_data.copy()
-	prune_tree(tree, node, train_data, subset_train_data, validation_data)
-
-	# Evaluate the pruned tree
-	accuracy = evaluate(train_data, tree)
-	print("Accuracy of pruned tree on train_data:", accuracy)
-	accuracy = evaluate(validation_data, tree)
-	print("Accuracy of pruned tree on validation_data:", accuracy)
-	#pprint.pp(tree)
-	plot_tree(tree)
-
+    # Example usage:
+    train_data = clean_data
+    validation_data = noisy_data
+    
+    #train_data = data_clean[:int(len(clean_data) * 0.7)]
+    #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
+    #test_data = data_clean[int(len(clean_data) * 0.85):]
+    
+    # Create the decision tree
+    
+    tree, depth = decision_tree_learning(train_data)
+    
+    # Evaluate the original tree
+    accuracy = evaluate(train_data, tree)
+    print("Accuracy of original tree on train_data:", accuracy)
+    accuracy = evaluate(validation_data, tree)
+    print("Accuracy of original tree on validation_data:", accuracy)
+    #pprint.pp(tree)
+    print()
+    plot_tree(tree)
+    
+    # Prune the tree
+    node = tree
+    subset_train_data = train_data.copy()
+    prune_tree(tree, node, train_data, subset_train_data, validation_data)
+    
+    # Evaluate the pruned tree
+    accuracy = evaluate(train_data, tree)
+    print("Accuracy of pruned tree on train_data:", accuracy)
+    accuracy = evaluate(validation_data, tree)
+    print("Accuracy of pruned tree on validation_data:", accuracy)
+    #pprint.pp(tree)
+    plot_tree(tree)
 
 
 
