@@ -201,6 +201,21 @@ def find_precision(confusion_matrix):
     Returns:
         tuple: tuple of precision value per class
     """
+    
+    precision_per_class = []
+    
+    # Loop precision calculation for each class/label
+    for label in range(4):
+        true_positives = confusion_matrix[label][label]
+        
+        total_predicted = 0
+        for row in confusion_matrix: # Predicted values are columns, loop is necessary to sum the elements a column
+            total_predicted += row[label]
+            
+        precision = true_positives / total_predicted
+        precision_per_class.append(precision)
+        
+    return precision_per_class
 
 def find_recall(confusion_matrix):
     """
@@ -212,6 +227,42 @@ def find_recall(confusion_matrix):
     Returns:
         tuple: tuple of recall value per class
     """
+    
+    recall_per_class = []
+    
+    # Loop recall calculation for each class/label
+    for label in range(4):
+        true_positives = confusion_matrix[label][label] # True values are rows, can sum row to find number of truly labelled instances
+        total_true = sum(confusion_matrix[label])
+        
+        recall = true_positives / total_true
+        recall_per_class.append(recall)
+        
+    return recall_per_class
+
+def accuracy(confusion_matrix): # untested
+    """
+    Find out the accuracy
+
+    Args:
+        confusion_matrix (2D list): confusion matrix of testing data
+        
+    Returns:
+        float: a single float type representing total accuracy of predictions
+    """
+    
+    # Count total correct predictions
+    correct_predictions = 0
+    for i in range(4):
+        correct_predictions += confusion_matrix[i][i]
+        
+    # Count total predictions
+    total_predictions = sum(sum(row) for row in confusion_matrix)
+    
+    # Calculate accuracy
+    accuracy = correct_predictions / total_predictions
+    
+    return accuracy
 
 def cross_validation(data, k=10):
     """
@@ -431,5 +482,4 @@ A few things to consider:
 
 Remember, the ultimate goal of machine learning models is good generalization performance, not perfect training performance. The reduced gap indicates better generalization, even if the absolute accuracies are slightly lower.'
 """
-
 
