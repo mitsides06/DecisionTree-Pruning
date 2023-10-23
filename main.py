@@ -161,12 +161,11 @@ def evaluate(test_data, tree):
     return correct / len(test_data)
 
 
-def confusion_matrix(training_data, testing_data, training_tree):
+def confusion_matrix(testing_data, training_tree):
     """
     Find out the confusion matrix
 
     Args:
-        training_data (list): training data
         testing_data (_type_): test data
         training_tree (_type_): decision tree trained on training data
         
@@ -176,6 +175,27 @@ def confusion_matrix(training_data, testing_data, training_tree):
     
     pass
 
+def precision(confusion_matrix):
+    """
+    Find out the precision
+
+    Args:
+        confusion_matrix (2D list): confusion matrix of testing data
+
+    Returns:
+        tuple: tuple of precision value per class
+    """
+
+def recall(confusion_matrix):
+    """
+    Find out the recall
+
+    Args:
+        confusion_matrix (2D list): confusion matrix of testing data
+        
+    Returns:
+        tuple: tuple of recall value per class
+    """
 
 def cross_validation(data, k=10):
     """
