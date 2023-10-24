@@ -331,7 +331,7 @@ def cross_validation(data, k=10):
     average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
     average_f1 = np.sum(f1s, axis=0) / len(f1s)
     
-    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe aerage precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
+    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe average precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
 
 
 # Step 4:
@@ -500,7 +500,7 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
     average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
     average_f1 = np.sum(f_1s, axis=0) / len(f_1s)
 
-    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe aerage precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
+    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe average precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
 
 if __name__ == "__main__":
     #a, b, c, d, e = cross_validation(clean_data)
