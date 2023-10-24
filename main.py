@@ -325,12 +325,13 @@ def cross_validation(data, k=10):
         f1s.append(f1)
         
         # Average the Metrics across all folds
+        average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
         average_accuracy = sum(accuracies)/len(accuracies)
         average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
         average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
         average_f1 = np.sum(f1s, axis=0) / len(f1s)
     
-    return confusion_matrices, average_accuracy, average_precision_per_class, average_recall_per_class, average_f1
+    return average_confusion_matrix, average_accuracy, average_precision_per_class, average_recall_per_class, average_f1
 
 
 # Step 4:
