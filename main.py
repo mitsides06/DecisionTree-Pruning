@@ -240,29 +240,29 @@ def find_recall(confusion_matrix):
         
     return recall_per_class
 
-def accuracy(confusion_matrix): # untested
-    """
-    Find out the accuracy
-
-    Args:
-        confusion_matrix (2D list): confusion matrix of testing data
-        
-    Returns:
-        float: a single float type representing total accuracy of predictions
-    """
-    
+#def accuracy(confusion_matrix): # untested       # I THINK THIS FUNCTION IS NOT NEEDED AS WE CAN IMMEDIATELY FIND THE ACCURACY BY CALLING THE EVALUTATE FUNCTION
+#    """
+#    Find out the accuracy
+#
+#    Args:
+#        confusion_matrix (2D list): confusion matrix of testing data
+#        
+#    Returns:
+#        float: a single float type representing total accuracy of predictions
+#    """
+#    
     # Count total correct predictions
-    correct_predictions = 0
-    for i in range(4):
-        correct_predictions += confusion_matrix[i][i]
-        
+#    correct_predictions = 0
+#    for i in range(4):
+#        correct_predictions += confusion_matrix[i][i]
+#        
     # Count total predictions
-    total_predictions = sum(sum(row) for row in confusion_matrix)
+#    total_predictions = sum(sum(row) for row in confusion_matrix)
     
     # Calculate accuracy
-    accuracy = correct_predictions / total_predictions
+#    accuracy = correct_predictions / total_predictions
     
-    return accuracy
+#    return accuracy
 
 def cross_validation(data, k=10):
     """
@@ -298,27 +298,36 @@ def cross_validation(data, k=10):
         fold = shuffled_data[start:end]
         folds.append(fold)
         start = end
+        
       
     # Storing metrics
     confusion_matrices = []
     accuracies = []
-    precision = []
-    recall = []
+    precisions = []
+    recalls = []
     f_1 = []
-    
-    for i in range(len(folds)):
-        
+
+    for i in range(k): # REPLACED LEN(FOLDS) WITH K AS K == LEN(FOLDS) BY THE ABOVE FOR LOOP CONSTRUCTION
         testing_data = folds[i]
-        training_data = np.delete(folds, i, 0)[0]
-        
-        training_tree, depth = decision_tree_learning(training_data)
+
+        training_data = np.concatenate([arr for arr in folds[:i]+folds[i+1:]], axis=0)
+        #training_data = np.delete(folds, i, 0)[0]       THIS CODE GIVES AN ARRAY WITH SHAPE (200, 8), THE TRAINING_DATA SHAPE SHOULD BE (1800, 0). I REPLACED IT WITH THE ONE ABOVE, IT SHOULD BE FINE NOW BUT GIVE IT A LOOK.
+
+        training_tree, _ = decision_tree_learning(training_data) # HAVING LEARNED THIS TRICK FROM FADI, SINCE WE DON'T NEED THE DEPTH VARIABLE I REPLACED DEPTH VARIABLE WITH _ ;)
         
         confusion_matrix = find_confusion_matrix(testing_data, training_tree)
+        accuracy = evaluate(testing_data, training_tree) # ADDED THIS CODE
+        precision = find_precision(confusion_matrix)  # ADDED THIS CODE. HAVEN'T CHECKED IF THE FIND_PRECISION FUNCTION IS CORRECT THO
+        recall = find_recall(confusion_matrix)  # ADDED THIS CODE. HAVEN'T CHECKED IF THE FIND_PRECISION FUNCTION IS CORRECT THO
         
-        confusion_matrices.append(confusion_matrix)
-        
+        confusion_matrices.append(confusion_matrix)   
+        # APPENDED THE METRICS
+        accuracies.append(accuracy)
+        precisions.append(precision)
+        recalls.append(recall)
     print(confusion_matrices[0])
-        
+    
+    # I THINK THE CROSS VALIDATION FUCNTION IS NOT COMPLETE
     
 
 # Step 4:
@@ -329,11 +338,11 @@ def is_node_connected_to_leaves(node):
     return not node["leaf"] and node["left"]["leaf"] and node["right"]["leaf"]
 
 
-def performance_difference(tree, train_data, validation_data):
+def performance_difference(tree, clean_test_data, noisy_test_data):      # CHANGED VARIABLE NAMES FOR CLARITY
     """
     Helper function to compute performance difference.
     """
-    return abs(evaluate(train_data, tree) - evaluate(validation_data, tree))
+    return abs(evaluate(clean_test_data, tree) - evaluate(noisy_test_data, tree))  
 
 
 def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
@@ -356,7 +365,7 @@ def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
     if is_node_connected_to_leaves(node):
         # Now that we are at a parent node of two leaf children nodes:
         # Calculate the performance difference between train and validation data before pruning:
-        current_performance_difference = performance_difference(root, full_train_data, validation_data)
+        current_accuracy = evaluate(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE WITH EVALUATE FUNCTION
 
         # Store the entire node to revert if needed:
         original_node = node.copy()
@@ -375,14 +384,14 @@ def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
         })
 
         # Calculate the new performance difference between train and validation data after pruning:
-        new_performance_difference = performance_difference(root, full_train_data, validation_data)
-        print("pruning")
+        new_accuracy = evaluate(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE FUNCTION WITH EVALUATE FUNCTION
+        #print("pruning")
 
         # Revert pruning if it didn't decrease the difference:
-        if new_performance_difference > current_performance_difference: 	# Big difference if > or >=  *see remarks at the end
+        if new_accuracy < current_accuracy: 	# Big difference if > or >=  *see remarks at the end
             node.clear()
             node.update(original_node)
-            print("but pruning unsuccessful")
+            #print("but pruning unsuccessful")
 
 
 
@@ -423,23 +432,83 @@ def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None):
     
     return x
 
-if __name__ == "__main__":
-    cross_validation(clean_data)
+# INCOMPLETE
+def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_TREE FUNCTION SO THAT IT TRACKS THE DEPTH. IT WILL BE NEEDED FOR DEPTH ANALYSIS (BEFORE VS AFTER PRUNING)
+    shuffled_data = data
     
-# if __name__ == "__main__":
+    # Setting the random seed
+    np.random.seed(0)
+    
+    # Randomly shuffling the dataset
+    np.random.shuffle(shuffled_data)
+    
+    # Separating into k folds
+    fold_size = len(shuffled_data) // k
+    remainder = len(shuffled_data) % k
+    folds = []
+
+    start = 0
+    for i in range(k):
+        end = start + fold_size + (1 if i < remainder else 0)
+        fold = shuffled_data[start:end]
+        folds.append(fold)
+        start = end
+        
+      
+    # Storing metrics
+    confusion_matrices = []    
+    accuracies = []
+    precisions = []
+    recalls = []
+    f_1 = []
+    models, accuracies = [], []
+    for test_idx in range(k): 
+        test_data = folds[i]
+        max_accuracy, best_model = 0, None
+
+        for valid_idx in range(k-1):
+            new_folds = folds[ :test_idx] + folds[test_idx+1: ]
+            valid_data = new_folds[valid_idx]
+            train_data = np.concatenate([arr for arr in new_folds[:valid_idx]+new_folds[valid_idx+1:]], axis=0)
+            tree, depth = decision_tree_learning(train_data)
+            node = tree
+            sub_train_data = train_data.copy() # FADI IS THIS NEEDED? YOU DID THAT STEP WHEN YOU CALLED THE PRUNE_TREE FUNCTION, BUT IS IT NECESSARY? (same above)
+            prune_tree(tree, node, train_data, sub_train_data, valid_data)
+            pruned_tree = tree
+            accuracy = evaluate(valid_data, pruned_tree)
+            if accuracy > max_accuracy:
+                max_accuracy = accuracy
+                best_model = pruned_tree
+            print(f"Inner loop : {valid_idx}")
+        
+        final_accuracy = evaluate(test_data, best_model)
+        accuracies.append(final_accuracy)
+        models.append(best_model)
+        print(f"Outer loop : {test_idx}")
+    
+    print(accuracies)
+
+
+if __name__ == "__main__":
+    #cross_validation(clean_data)
+    cross_validation_after_pruning(clean_data)
+    cross_validation_after_pruning(noisy_data)
+
+    
+#if __name__ == "__main__":
 #     # Example usage:
 #     train_data = clean_data
 #     validation_data = noisy_data
     
-#     #train_data = data_clean[:int(len(clean_data) * 0.7)]
-#     #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
-#     #test_data = data_clean[int(len(clean_data) * 0.85):]
+     #train_data = data_clean[:int(len(clean_data) * 0.7)]
+     #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
+     #test_data = data_clean[int(len(clean_data) * 0.85):]
     
-#     # Create the decision tree
+     # Create the decision tree
     
 #     tree, depth = decision_tree_learning(train_data)
     
-#     # Evaluate the original tree
+     # Evaluate the original tree
 #     accuracy = evaluate(train_data, tree)
 #     print("Accuracy of original tree on train_data:", accuracy)
 #     accuracy = evaluate(validation_data, tree)
@@ -448,12 +517,12 @@ if __name__ == "__main__":
 #     print()
 #     plot_tree(tree)
     
-#     # Prune the tree
+     # Prune the tree
 #     node = tree
 #     subset_train_data = train_data.copy()
 #     prune_tree(tree, node, train_data, subset_train_data, validation_data)
     
-#     # Evaluate the pruned tree
+     # Evaluate the pruned tree
 #     accuracy = evaluate(train_data, tree)
 #     print("Accuracy of pruned tree on train_data:", accuracy)
 #     accuracy = evaluate(validation_data, tree)
