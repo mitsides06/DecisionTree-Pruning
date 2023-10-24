@@ -85,7 +85,7 @@ def decision_tree_learning(data, depth=0):
 
     Args:
         data (list): dataset
-        depth (int, optional): the depth of the node. Defaults to 0.
+        depth (int): the depth of the node. Defaults to 0.
 
     Returns:
         dict: decision tree
@@ -398,6 +398,23 @@ def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
             #print("but pruning unsuccessful")
 
 
+def tree_depth(node):
+    """
+    Compute the depth of the tree rooted at the given node.
+    """
+    # Base case: if it's a leaf, depth is 0.
+    if node['leaf']:
+        return 0
+
+    # Recursive case: compute the depths of the left and right subtrees.
+    left_depth = tree_depth(node['left'])
+    right_depth = tree_depth(node['right'])
+
+    # The depth of the current tree is 1 (for the current node) 
+    # plus the maximum depth of its children.
+    return 1 + max(left_depth, right_depth)
+
+
 
 
 # Bonus Part: Tree Visualisation
@@ -509,7 +526,7 @@ if __name__ == "__main__":
     #print(f"Precision: {c}")
     #print(f"Recall: {d}")
     #print(f"F-1: {e}")
-    print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    """print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
     cross_validation(clean_data)
     print()
     print("PRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
@@ -519,43 +536,46 @@ if __name__ == "__main__":
     cross_validation_after_pruning(clean_data)
     print()
     print("POST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
-    cross_validation_after_pruning(noisy_data)
+    cross_validation_after_pruning(noisy_data)"""
 
+
+#    # Example usage:
+    train_data = clean_data
+#    validation_data = noisy_data
     
-#if __name__ == "__main__":
-#     # Example usage:
-#     train_data = clean_data
-#     validation_data = noisy_data
+    #train_data = data_clean[:int(len(clean_data) * 0.7)]
+    #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
+    #test_data = data_clean[int(len(clean_data) * 0.85):]
     
-     #train_data = data_clean[:int(len(clean_data) * 0.7)]
-     #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
-     #test_data = data_clean[int(len(clean_data) * 0.85):]
+    # Create the decision tree
     
-     # Create the decision tree
-    
-#     tree, depth = decision_tree_learning(train_data)
+    tree, depth = decision_tree_learning(train_data)
+    print(f"The depth after creating tree: {depth}")
+
+    depth = tree_depth(tree)
+    print(f"The depth of the tree calculated by the tree_depth function is: {depth}")
     
      # Evaluate the original tree
-#     accuracy = find_accuracy(train_data, tree)
-#     print("Accuracy of original tree on train_data:", accuracy)
-#     accuracy = find_accuracy(validation_data, tree)
-#     print("Accuracy of original tree on validation_data:", accuracy)
-#     #pprint.pp(tree)
-#     print()
-#     plot_tree(tree)
+#    accuracy = find_accuracy(train_data, tree)
+#    print("Accuracy of original tree on train_data:", accuracy)
+#    accuracy = find_accuracy(validation_data, tree)
+#    print("Accuracy of original tree on validation_data:", accuracy)
+#    #pprint.pp(tree)
+#    print()
+#    plot_tree(tree)
     
      # Prune the tree
-#     node = tree
-#     subset_train_data = train_data.copy()
-#     prune_tree(tree, node, train_data, subset_train_data, validation_data)
+#    node = tree
+#    subset_train_data = train_data.copy()
+#    prune_tree(tree, node, train_data, subset_train_data, validation_data)
     
      # Evaluate the pruned tree
-#     accuracy = find_accuracy(train_data, tree)
-#     print("Accuracy of pruned tree on train_data:", accuracy)
-#     accuracy = find_accuracy(validation_data, tree)
-#     print("Accuracy of pruned tree on validation_data:", accuracy)
-#     #pprint.pp(tree)
-#     plot_tree(tree)
+#    accuracy = find_accuracy(train_data, tree)
+#    print("Accuracy of pruned tree on train_data:", accuracy)
+#    accuracy = find_accuracy(validation_data, tree)
+#    print("Accuracy of pruned tree on validation_data:", accuracy)
+#    #pprint.pp(tree)
+#    plot_tree(tree)
 
 
 
