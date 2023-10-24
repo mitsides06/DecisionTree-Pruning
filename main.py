@@ -468,8 +468,7 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
     models = []
     for test_idx in range(k): 
         test_data = folds[i]
-        max_accuracy, best_model = 0, None
-
+       
         for valid_idx in range(k-1):
             new_folds = folds[ :test_idx] + folds[test_idx+1: ]
             valid_data = new_folds[valid_idx]
@@ -479,24 +478,21 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
             sub_train_data = train_data.copy() # FADI IS THIS NEEDED? YOU DID THAT STEP WHEN YOU CALLED THE PRUNE_TREE FUNCTION, BUT IS IT NECESSARY? (same above)
             prune_tree(tree, node, train_data, sub_train_data, valid_data)
             pruned_tree = tree
-            accuracy = find_accuracy(valid_data, pruned_tree)
-            if accuracy > max_accuracy:
-                max_accuracy = accuracy
-                best_model = pruned_tree
 
-
-        final_accuracy = find_accuracy(test_data, best_model)
-        confusion_matrix = find_confusion_matrix(test_data, best_model)
-        precision = find_precision(confusion_matrix)
-        recall = find_recall(confusion_matrix)
-        f_1 = find_f1(confusion_matrix)
-
-        confusion_matrices.append(confusion_matrix)
-        accuracies.append(final_accuracy)
-        precisions.append(precision)
-        recalls.append(recall)
-        f_1s.append(f_1)
-        models.append(best_model)
+            final_accuracy = find_accuracy(test_data, pruned_tree)
+            confusion_matrix = find_confusion_matrix(test_data, pruned_tree)
+            precision = find_precision(confusion_matrix)
+            recall = find_recall(confusion_matrix)
+            f_1 = find_f1(confusion_matrix)
+            
+            confusion_matrices.append(confusion_matrix)
+            accuracies.append(final_accuracy)
+            precisions.append(precision)
+            recalls.append(recall)
+            f_1s.append(f_1)
+            models.append(pruned_tree)
+    
+    
     
     average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
     average_accuracy = sum(accuracies)/len(accuracies)
