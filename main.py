@@ -141,7 +141,7 @@ def classify(instance, tree):
         return classify(instance, tree["right"])
 
 
-def evaluate(test_data, tree):
+def find_accuracy(test_data, tree):
     """
     Evaluation of the algorithm
 
@@ -158,7 +158,7 @@ def evaluate(test_data, tree):
         prediction = classify(instance[:-1], tree)
         if prediction == instance[-1]:
             correct += 1
-    return correct / len(test_data)
+    return np.array(correct / len(test_data))
 
 
 def find_confusion_matrix(testing_data, training_tree):
@@ -188,7 +188,7 @@ def find_confusion_matrix(testing_data, training_tree):
     for pred, act in zip(prediction_labels, actual_labels):
         confusion_matrix[int(act)-1][int(pred)-1] += 1
     
-    return confusion_matrix
+    return np.array(confusion_matrix)
     
 
 def find_precision(confusion_matrix):
@@ -215,7 +215,7 @@ def find_precision(confusion_matrix):
         precision = true_positives / total_predicted
         precision_per_class.append(precision)
         
-    return precision_per_class
+    return np.array(precision_per_class)
 
 def find_recall(confusion_matrix):
     """
@@ -232,37 +232,33 @@ def find_recall(confusion_matrix):
     
     # Loop recall calculation for each class/label
     for label in range(4):
+
         true_positives = confusion_matrix[label][label] # True values are rows, can sum row to find number of truly labelled instances
         total_true = sum(confusion_matrix[label])
         
         recall = true_positives / total_true
         recall_per_class.append(recall)
         
-    return recall_per_class
+    return np.array(recall_per_class)
 
-#def accuracy(confusion_matrix): # untested       # I THINK THIS FUNCTION IS NOT NEEDED AS WE CAN IMMEDIATELY FIND THE ACCURACY BY CALLING THE EVALUTATE FUNCTION
-#    """
-#    Find out the accuracy
-#
-#    Args:
-#        confusion_matrix (2D list): confusion matrix of testing data
-#        
-#    Returns:
-#        float: a single float type representing total accuracy of predictions
-#    """
-#    
-    # Count total correct predictions
-#    correct_predictions = 0
-#    for i in range(4):
-#        correct_predictions += confusion_matrix[i][i]
-#        
-    # Count total predictions
-#    total_predictions = sum(sum(row) for row in confusion_matrix)
+def find_f1(confusion_matrix):
+    """
+    Find out the recall
+
+    Args:
+        confusion_matrix (2D list): confusion matrix of testing data
+        
+    Returns:
+        tuple: tuple of f1 value per class
+    """
+    # Use recall and precision functions to find F1
+    recall_per_class = find_recall(confusion_matrix)
+    precision_per_class = find_precision(confusion_matrix)
     
-    # Calculate accuracy
-#    accuracy = correct_predictions / total_predictions
+    # Calculate F1
+    f1_per_class = 2 * np.multiply(recall_per_class, precision_per_class) / np.add(recall_per_class, precision_per_class)
     
-#    return accuracy
+    return np.array(f1_per_class)
 
 def cross_validation(data, k=10):
     """
@@ -305,7 +301,7 @@ def cross_validation(data, k=10):
     accuracies = []
     precisions = []
     recalls = []
-    f_1 = []
+    f1s = []
 
     for i in range(k): # REPLACED LEN(FOLDS) WITH K AS K == LEN(FOLDS) BY THE ABOVE FOR LOOP CONSTRUCTION
         testing_data = folds[i]
@@ -316,17 +312,19 @@ def cross_validation(data, k=10):
         training_tree, _ = decision_tree_learning(training_data) # HAVING LEARNED THIS TRICK FROM FADI, SINCE WE DON'T NEED THE DEPTH VARIABLE I REPLACED DEPTH VARIABLE WITH _ ;)
         
         confusion_matrix = find_confusion_matrix(testing_data, training_tree)
-        accuracy = evaluate(testing_data, training_tree) # ADDED THIS CODE
+        accuracy = find_accuracy(testing_data, training_tree) # ADDED THIS CODE
         precision = find_precision(confusion_matrix)  # ADDED THIS CODE. HAVEN'T CHECKED IF THE FIND_PRECISION FUNCTION IS CORRECT THO
         recall = find_recall(confusion_matrix)  # ADDED THIS CODE. HAVEN'T CHECKED IF THE FIND_PRECISION FUNCTION IS CORRECT THO
+        f1 = find_f1(confusion_matrix) 
         
         confusion_matrices.append(confusion_matrix)   
         # APPENDED THE METRICS
         accuracies.append(accuracy)
         precisions.append(precision)
         recalls.append(recall)
+        f1s.append(f1)
     
-    return confusion_matrices, accuracies, precisions, recalls, f_1
+    return confusion_matrices, accuracies, precisions, recalls, f1s
 
 
 # Step 4:
@@ -341,7 +339,7 @@ def performance_difference(tree, clean_test_data, noisy_test_data):      # CHANG
     """
     Helper function to compute performance difference.
     """
-    return abs(evaluate(clean_test_data, tree) - evaluate(noisy_test_data, tree))  
+    return abs(find_accuracy(clean_test_data, tree) - find_accuracy(noisy_test_data, tree))  
 
 
 def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
@@ -364,7 +362,7 @@ def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
     if is_node_connected_to_leaves(node):
         # Now that we are at a parent node of two leaf children nodes:
         # Calculate the performance difference between train and validation data before pruning:
-        current_accuracy = evaluate(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE WITH EVALUATE FUNCTION
+        current_accuracy = find_accuracy(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE WITH EVALUATE FUNCTION
 
         # Store the entire node to revert if needed:
         original_node = node.copy()
@@ -383,7 +381,7 @@ def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
         })
 
         # Calculate the new performance difference between train and validation data after pruning:
-        new_accuracy = evaluate(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE FUNCTION WITH EVALUATE FUNCTION
+        new_accuracy = find_accuracy(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE FUNCTION WITH EVALUATE FUNCTION
         #print("pruning")
 
         # Revert pruning if it didn't decrease the difference:
@@ -474,13 +472,13 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
             sub_train_data = train_data.copy() # FADI IS THIS NEEDED? YOU DID THAT STEP WHEN YOU CALLED THE PRUNE_TREE FUNCTION, BUT IS IT NECESSARY? (same above)
             prune_tree(tree, node, train_data, sub_train_data, valid_data)
             pruned_tree = tree
-            accuracy = evaluate(valid_data, pruned_tree)
+            accuracy = find_accuracy(valid_data, pruned_tree)
             if accuracy > max_accuracy:
                 max_accuracy = accuracy
                 best_model = pruned_tree
             print(f"Inner loop : {valid_idx}")
         
-        final_accuracy = evaluate(test_data, best_model)
+        final_accuracy = find_accuracy(test_data, best_model)
         accuracies.append(final_accuracy)
         models.append(best_model)
         print(f"Outer loop : {test_idx}")
@@ -513,9 +511,9 @@ if __name__ == "__main__":
 #     tree, depth = decision_tree_learning(train_data)
     
      # Evaluate the original tree
-#     accuracy = evaluate(train_data, tree)
+#     accuracy = find_accuracy(train_data, tree)
 #     print("Accuracy of original tree on train_data:", accuracy)
-#     accuracy = evaluate(validation_data, tree)
+#     accuracy = find_accuracy(validation_data, tree)
 #     print("Accuracy of original tree on validation_data:", accuracy)
 #     #pprint.pp(tree)
 #     print()
@@ -527,9 +525,9 @@ if __name__ == "__main__":
 #     prune_tree(tree, node, train_data, subset_train_data, validation_data)
     
      # Evaluate the pruned tree
-#     accuracy = evaluate(train_data, tree)
+#     accuracy = find_accuracy(train_data, tree)
 #     print("Accuracy of pruned tree on train_data:", accuracy)
-#     accuracy = evaluate(validation_data, tree)
+#     accuracy = find_accuracy(validation_data, tree)
 #     print("Accuracy of pruned tree on validation_data:", accuracy)
 #     #pprint.pp(tree)
 #     plot_tree(tree)
