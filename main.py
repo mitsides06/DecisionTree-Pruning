@@ -323,8 +323,14 @@ def cross_validation(data, k=10):
         precisions.append(precision)
         recalls.append(recall)
         f1s.append(f1)
+        
+        # Average the Metrics across all folds
+        average_accuracy = sum(accuracies)/len(accuracies)
+        average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
+        average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
+        average_f1 = np.sum(f1s, axis=0) / len(f1s)
     
-    return confusion_matrices, accuracies, precisions, recalls, f1s
+    return confusion_matrices, average_accuracy, average_precision_per_class, average_recall_per_class, average_f1
 
 
 # Step 4:
@@ -489,7 +495,7 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
 if __name__ == "__main__":
     a, b, c, d, e = cross_validation(clean_data)
     print(f"Confusion Matrices: {a}")
-    print(f"Accuracies: {b}")
+    print(f"Accuracy: {b}")
     print(f"Precision: {c}")
     print(f"Recall: {d}")
     print(f"F-1: {e}")
