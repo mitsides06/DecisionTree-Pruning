@@ -324,14 +324,14 @@ def cross_validation(data, k=10):
         recalls.append(recall)
         f1s.append(f1)
         
-        # Average the Metrics across all folds
-        average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
-        average_accuracy = sum(accuracies)/len(accuracies)
-        average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
-        average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
-        average_f1 = np.sum(f1s, axis=0) / len(f1s)
+    # Average the Metrics across all folds
+    average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
+    average_accuracy = sum(accuracies)/len(accuracies)
+    average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
+    average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
+    average_f1 = np.sum(f1s, axis=0) / len(f1s)
     
-    return average_confusion_matrix, average_accuracy, average_precision_per_class, average_recall_per_class, average_f1
+    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe aerage precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
 
 
 # Step 4:
@@ -464,8 +464,8 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
     accuracies = []
     precisions = []
     recalls = []
-    f_1 = []
-    models, accuracies = [], []
+    f_1s = []
+    models = []
     for test_idx in range(k): 
         test_data = folds[i]
         max_accuracy, best_model = 0, None
@@ -483,25 +483,47 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
             if accuracy > max_accuracy:
                 max_accuracy = accuracy
                 best_model = pruned_tree
-            print(f"Inner loop : {valid_idx}")
-        
-        final_accuracy = find_accuracy(test_data, best_model)
-        accuracies.append(final_accuracy)
-        models.append(best_model)
-        print(f"Outer loop : {test_idx}")
-    
-    print(accuracies)
 
+
+        final_accuracy = find_accuracy(test_data, best_model)
+        confusion_matrix = find_confusion_matrix(test_data, best_model)
+        precision = find_precision(confusion_matrix)
+        recall = find_recall(confusion_matrix)
+        f_1 = find_f1(confusion_matrix)
+
+        confusion_matrices.append(confusion_matrix)
+        accuracies.append(final_accuracy)
+        precisions.append(precision)
+        recalls.append(recall)
+        f_1s.append(f_1)
+        models.append(best_model)
+    
+    average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
+    average_accuracy = sum(accuracies)/len(accuracies)
+    average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
+    average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
+    average_f1 = np.sum(f_1s, axis=0) / len(f_1s)
+
+    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe aerage precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
 
 if __name__ == "__main__":
-    a, b, c, d, e = cross_validation(clean_data)
-    print(f"Confusion Matrices: {a}")
-    print(f"Accuracy: {b}")
-    print(f"Precision: {c}")
-    print(f"Recall: {d}")
-    print(f"F-1: {e}")
-    # cross_validation_after_pruning(clean_data)
-    # cross_validation_after_pruning(noisy_data)
+    #a, b, c, d, e = cross_validation(clean_data)
+    #print(f"Confusion Matrices: {a}")
+    #print(f"Accuracy: {b}")
+    #print(f"Precision: {c}")
+    #print(f"Recall: {d}")
+    #print(f"F-1: {e}")
+    print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    cross_validation(clean_data)
+    print()
+    print("PRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
+    cross_validation(noisy_data)
+    print()
+    print("POST-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    cross_validation_after_pruning(clean_data)
+    print()
+    print("POST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
+    cross_validation_after_pruning(noisy_data)
 
     
 #if __name__ == "__main__":
