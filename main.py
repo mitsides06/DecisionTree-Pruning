@@ -325,10 +325,9 @@ def cross_validation(data, k=10):
         accuracies.append(accuracy)
         precisions.append(precision)
         recalls.append(recall)
-    print(confusion_matrices[0])
     
-    # I THINK THE CROSS VALIDATION FUCNTION IS NOT COMPLETE
-    
+    return confusion_matrices, accuracies, precisions, recalls, f_1
+
 
 # Step 4:
 def is_node_connected_to_leaves(node):
@@ -490,9 +489,14 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
 
 
 if __name__ == "__main__":
-    #cross_validation(clean_data)
-    cross_validation_after_pruning(clean_data)
-    cross_validation_after_pruning(noisy_data)
+    a, b, c, d, e = cross_validation(clean_data)
+    print(f"Confusion Matrices: {a}")
+    print(f"Accuracies: {b}")
+    print(f"Precision: {c}")
+    print(f"Recall: {d}")
+    print(f"F-1: {e}")
+    # cross_validation_after_pruning(clean_data)
+    # cross_validation_after_pruning(noisy_data)
 
     
 #if __name__ == "__main__":
