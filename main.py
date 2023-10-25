@@ -398,7 +398,7 @@ def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
             #print("but pruning unsuccessful")
 
 
-def tree_depth(node):
+def find_depth(node):
     """
     Compute the depth of the tree rooted at the given node.
     """
@@ -407,8 +407,8 @@ def tree_depth(node):
         return 0
 
     # Recursive case: compute the depths of the left and right subtrees.
-    left_depth = tree_depth(node['left'])
-    right_depth = tree_depth(node['right'])
+    left_depth = find_depth(node['left'])
+    right_depth = find_depth(node['right'])
 
     # The depth of the current tree is 1 (for the current node) 
     # plus the maximum depth of its children.
@@ -477,6 +477,8 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
         
       
     # Storing metrics
+    pre_pruning_depths = []
+    post_pruning_depths = []
     confusion_matrices = []    
     accuracies = []
     precisions = []
@@ -491,10 +493,13 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
             valid_data = new_folds[valid_idx]
             train_data = np.concatenate([arr for arr in new_folds[:valid_idx]+new_folds[valid_idx+1:]], axis=0)
             tree, depth = decision_tree_learning(train_data)
+            pre_pruning_depths.append(depth)
             node = tree
             sub_train_data = train_data.copy() # FADI IS THIS NEEDED? YOU DID THAT STEP WHEN YOU CALLED THE PRUNE_TREE FUNCTION, BUT IS IT NECESSARY? (same above)
             prune_tree(tree, node, train_data, sub_train_data, valid_data)
             pruned_tree = tree
+            pruned_tree_depth = find_depth(pruned_tree)
+            post_pruning_depths.append(pruned_tree_depth)
 
             final_accuracy = find_accuracy(test_data, pruned_tree)
             confusion_matrix = find_confusion_matrix(test_data, pruned_tree)
@@ -509,15 +514,15 @@ def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_
             f_1s.append(f_1)
             models.append(pruned_tree)
     
-    
-    
+    average_pre_pruning_depth = sum(pre_pruning_depths) / len(pre_pruning_depths)
+    average_post_pruning_depth = sum(post_pruning_depths) / len(post_pruning_depths)
     average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
     average_accuracy = sum(accuracies)/len(accuracies)
     average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
     average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
     average_f1 = np.sum(f_1s, axis=0) / len(f_1s)
 
-    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe average precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
+    print(f"The average pre-pruning tree depth is: {average_pre_pruning_depth}\nThe average post-pruning tree depth is:{average_post_pruning_depth}\nThe average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe average precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
 
 if __name__ == "__main__":
     #a, b, c, d, e = cross_validation(clean_data)
@@ -526,7 +531,7 @@ if __name__ == "__main__":
     #print(f"Precision: {c}")
     #print(f"Recall: {d}")
     #print(f"F-1: {e}")
-    """print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
     cross_validation(clean_data)
     print()
     print("PRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
@@ -536,11 +541,11 @@ if __name__ == "__main__":
     cross_validation_after_pruning(clean_data)
     print()
     print("POST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
-    cross_validation_after_pruning(noisy_data)"""
+    cross_validation_after_pruning(noisy_data)
 
 
 #    # Example usage:
-    train_data = clean_data
+    #train_data = clean_data
 #    validation_data = noisy_data
     
     #train_data = data_clean[:int(len(clean_data) * 0.7)]
@@ -549,11 +554,11 @@ if __name__ == "__main__":
     
     # Create the decision tree
     
-    tree, depth = decision_tree_learning(train_data)
-    print(f"The depth after creating tree: {depth}")
+    #tree, depth = decision_tree_learning(train_data)
+    #print(f"The depth after creating tree: {depth}")
 
-    depth = tree_depth(tree)
-    print(f"The depth of the tree calculated by the tree_depth function is: {depth}")
+    #depth = tree_depth(tree)
+    #print(f"The depth of the tree calculated by the tree_depth function is: {depth}")
     
      # Evaluate the original tree
 #    accuracy = find_accuracy(train_data, tree)
