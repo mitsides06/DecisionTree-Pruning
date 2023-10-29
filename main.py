@@ -1,7 +1,14 @@
 """
 Introduction to Machine Learning
-CW1
+CW1 - Decision Tree
+
+Team members:
+> Kyoya Higashino (kh123)
+> Jack Hau (jhh23)
+> Fadi Zahar (fz221)
+> Konstantinos Mitsides (km2120)
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pprint
@@ -9,24 +16,27 @@ import random
 
 
 
+
 # Step 1: Loading data
 clean_data = np.loadtxt("wifi_db/clean_dataset.txt")
-noisy_data = np.loadtxt("wifi_db/noisy_dataset.txt")	# should process the labels - round them to integers/
+noisy_data = np.loadtxt("wifi_db/noisy_dataset.txt")
 
 
 
 
 # Step 2: Creating Decision Trees
 def entropy(data):
-    """
-    Calculate the entropy of the data
+    """ Calculate the entropy of the data.
 
     Args:
-        data (list): dataset
+        data (np.array): dataset
 
     Returns:
-        numpy.float64: entropy value 
+        numpy.float64: entropy value
     """
+    # Return 0 if the dataset is empty to avoid errors in log calculations.
+    if len(data) == 0:
+        return 0
 
     labels = data[:, -1]
     _, counts = np.unique(labels, return_counts=True)
@@ -35,38 +45,41 @@ def entropy(data):
 
 
 def gain(s_all, s_left, s_right):
-    """
-    Calculate the information gain of the subsets (s_left, s_right) associated with the dataset (s_all)
+    """ Calculate the information gain achieved by splitting the dataset.
+
+    The dataset (s_all) is split into two subsets (s_left, s_right).
 
     Args:
-        s_all (list): dataset
-        s_left (list): subset on the left
-        s_right (list): subset on the right 
+        s_all (np.array): dataset
+        s_left (np.array): subset on the left
+        s_right (np.array): subset on the right
 
     Returns:
-        numpy.float64: information gain: the difference between the initial entropy and the average entropy of the produced subsets
+        numpy.float64: information gain: the difference between the initial
+                       entropy of s_all and the weighted average entropy of
+                       the produced subsets (s_left and s_right)
     """
-
-    return entropy(s_all) - (len(s_left)/len(s_all)*entropy(s_left) + len(s_right)/len(s_all)*entropy(s_right))
+    remainder = (len(s_left)/len(s_all)*entropy(s_left)
+                 + len(s_right)/len(s_all)*entropy(s_right))
+    return entropy(s_all) - remainder
 
 
 def find_split(data):
-    """
-    Chooses the attribute and the value that results in the highest information gain
+    """ Chooses the attribute and the value that result in the highest
+    information gain.
 
     Args:
-        data (list): the dataset
+        data (np.array): dataset
 
     Returns:
-        tuple: (an attribute of the dateset, optimal value to split in the attribute)
+        tuple: best feature and value to split the dataset
     """
-
     best_gain = 0
     best_split = None
 
     for feature in range(data.shape[1] - 1):
         unique_values = np.unique(data[:, feature])
-        for value in unique_values[1:]:  # we don't need to go over the last unique value as the right split will be empty: yessir! Also changed for the node to have value: x<value not x<=value
+        for value in unique_values[1:]:
             left_split = get_left_split_data(data, feature, value)
             right_split = get_right_split_data(data, feature, value)
 
@@ -79,24 +92,74 @@ def find_split(data):
     return best_split
 
 
-def decision_tree_learning(data, depth=0):
-    """
-    Recursive Decision Tree Algorithm
+def get_left_split_data(data, feature, value):
+    """ Retrieve the subset of data given by the left split.
+
+    This is the subset where the specified feature has values strictly
+    less than the provided value.
 
     Args:
-        data (list): dataset
-        depth (int): the depth of the node. Defaults to 0.
+        data (numpy.array): The dataset to split.
+        feature (int): The index of the feature based on which the split
+                       is determined.
+        value (float): The threshold value to decide the split.
 
     Returns:
-        dict: decision tree
+        numpy.array: The subset of data where the specified feature's value
+                     is less than the given value.
     """
+    return data[data[:, feature] < value]
 
+
+def get_right_split_data(data, feature, value):
+    """ Retrieve the subset of data given by the right split.
+
+    This is the subset where the specified feature has values greater than
+    or equal to the provided value.
+
+    Args:
+        data (numpy.array): The dataset to split.
+        feature (int): The index of the feature based on which the split
+                       is determined.
+        value (float): The threshold value to decide the split.
+
+    Returns:
+        numpy.array: The subset of data where the specified feature's value
+                     is greater than or equal to the given value.
+    """
+    return data[data[:, feature] >= value]
+
+
+def decision_tree_learning(data, depth=0):
+    """ Recursive Decision Tree Algorithm.
+
+    Args:
+        data (np.array): dataset
+        depth (int): the depth of the node. Defaults to 0
+
+    Returns:
+        dict: A recursive dictionary representing the decision tree.
+              Each node in the tree is either a leaf node or an internal node:
+                 - If it's a leaf node, the dictionary has the format:
+                   {
+                       "leaf": True,
+                       "label": label_value
+                   }
+                 - If it's an internal node, the dictionary has the format:
+                   {
+                       "leaf": False,
+                       "feature": feature_index,
+                       "value": split_value,
+                       "left": left_subtree_dictionary,
+                       "right": right_subtree_dictionary
+                   }
+    """
     labels = data[:, -1]
     if len(np.unique(labels)) == 1:
-        return {"leaf": True, "label": data[0, -1]}, depth  # removed "depth" from the dictionary, and put it as an element in a 2-tuple as our function should return (node, depth)
+        return {"leaf": True, "label": data[0, -1]}, depth
 
     feature, value = find_split(data)
-    left_data = get_left_split_data(data, feature, value)		# Also changed for the node to have value: x<value not x<=value (related to comment in find_split())
+    left_data = get_left_split_data(data, feature, value)
     right_data = get_right_split_data(data, feature, value)
 
     left_branch, left_depth = decision_tree_learning(left_data, depth+1)
@@ -108,299 +171,463 @@ def decision_tree_learning(data, depth=0):
         "value": value,
         "left": left_branch,
         "right": right_branch
-    }, max(left_depth, right_depth)  # did the same thing as above. I am not quite sure about the styling convection here tho - arranged styling convention (my best guess)
+    }, max(left_depth, right_depth)
 
 
-def get_left_split_data(data, feature, value):
-	return data[data[:, feature] < value]
-
-
-def get_right_split_data(data, feature, value):
-	return data[data[:, feature] >= value]
 
 
 # Step 3: Classification & Evaluation
 def classify(instance, tree):
-    """
-    Classification function to classify instances in the tree
+    """ Classify an instance using the given decision tree.
+
+    This function recursively traverses the decision tree based on the
+    instance's feature values until it reaches a leaf node.
 
     Args:
-        instance (list): a testing example
-        tree (dictionary): decision tree
+        instance (np.array): A testing example
+        tree (dict): The decision tree (a recursive dictionary)
+                     See `decision_tree_learning` for structure details.
 
     Returns:
-        int: the label
+        int: The label/class assigned to the instance by the tree.
     """
-
+    # If the current tree node is a leaf, return the stored label.
     if tree["leaf"]:
         return tree["label"]
-    
+
+    # Depending on instance's feature value, traverse left or right subtree.
     if instance[tree["feature"]] < tree["value"]:
         return classify(instance, tree["left"])
     else:
         return classify(instance, tree["right"])
 
 
-def find_accuracy(test_data, tree):
-    """
-    Evaluation of the algorithm
+def find_accuracy(test_data, tree):     # == evaluate(test_db, trained_tree)
+    """ Evaluate the accuracy of the decision tree on the provided test data.
 
     Args:
-        test_data (list): a list of example testing data
-        tree (dictionary): decision tree
+        test_data (np.array): Array of testing examples. Each instance is
+                              expected to be an array where the last element
+                              is the label.
+        tree (dict): Trained decision tree (a recursive dictionary)
+                     See `decision_tree_learning` for structure details.
 
     Returns:
-        float: percentage of accuracy
+        float: The accuracy of the decision tree on the test data as a
+               percentage.
     """
-
     correct = 0
     for instance in test_data:
         prediction = classify(instance[:-1], tree)
         if prediction == instance[-1]:
             correct += 1
-    return np.array(correct / len(test_data))
+    return correct / len(test_data)
 
 
-def find_confusion_matrix(testing_data, training_tree):
-    """
-    Find out the confusion matrix
+def find_confusion_matrix(test_data, tree):
+    """ Compute the confusion matrix based on predictions from the tree.
+
+    In the resulting matrix:
+    - Rows represent the actual classes.
+    - Columns represent the predicted classes.
 
     Args:
-        testing_data (_type_): test data
-        training_tree (_type_): decision tree trained on training data
+        test_data (np.array): Array of testing examples. Each instance is
+                              expected to be an array where the last element
+                              is the label.
+        tree (dict): Trained decision tree (a recursive dictionary)
+                     See `decision_tree_learning` for structure details.
         
     Returns:
-        2D list: confusion matrix
+        np.array: confusion matrix
     """
-    prediction_labels = []
-    actual_labels = [instance[-1] for instance in testing_data]
+    actual_labels = [instance[-1] for instance in test_data]
+    predicted_labels = [classify(instance[:-1], tree) for instance in test_data]
+
+    # Get the number of unique labels (classes) from the test data.
+    num_labels = len(set(actual_labels))
     
-    # Getting the predictions of each instance in testing data
-    for instance in testing_data:
-        prediction = classify(instance[:-1], training_tree)
-        
-        prediction_labels.append(prediction)
+    # Initiating confusion matrix.
+    confusion_matrix = np.zeros((num_labels, num_labels), dtype=int)
     
-    # Initating confusion matrix
-    confusion_matrix = [[0 for j in range(4)] for i in range(4)]
-    
-    # for every prediction and actual pair, it updates the confusion matrix
-    for pred, act in zip(prediction_labels, actual_labels):
+    # For every predicted and actual labels pair, update the confusion matrix.
+    for pred, act in zip(predicted_labels, actual_labels):
         confusion_matrix[int(act)-1][int(pred)-1] += 1
     
-    return np.array(confusion_matrix)
+    return confusion_matrix
     
 
 def find_precision(confusion_matrix):
-    """
-    Find out the precision
+    """ Calculate the precision for each class based on the confusion matrix.
 
     Args:
-        confusion_matrix (2D list): confusion matrix of testing data
+        confusion_matrix (np.array): A confusion matrix of testing data.
 
     Returns:
-        tuple: tuple of precision value per class
+        np.array: An array of precision values, one for each class.
     """
-    
-    precision_per_class = []
-    
-    # Loop precision calculation for each class/label
-    for label in range(4):
-        true_positives = confusion_matrix[label][label]
-        
-        total_predicted = 0
-        for row in confusion_matrix: # Predicted values are columns, loop is necessary to sum the elements a column
-            total_predicted += row[label]
-            
-        precision = true_positives / total_predicted
-        precision_per_class.append(precision)
-        
-    return np.array(precision_per_class)
+    # Diagonal values of the confusion matrix are the correct predictions.
+    true_positive_counts = np.diag(confusion_matrix)
+    # Summing columns for the total number of predictions made for each class.
+    total_predictions_per_class = np.sum(confusion_matrix, axis=0)
+
+    # Ensuring no cases of division by zero.
+    total_predictions_per_class[total_predictions_per_class == 0] = 1
+
+    precision_values = true_positive_counts / total_predictions_per_class
+
+    return precision_values
+
 
 def find_recall(confusion_matrix):
-    """
-    Find out the recall
+    """ Calculate the recall for each class based on the confusion matrix.
 
     Args:
-        confusion_matrix (2D list): confusion matrix of testing data
+        confusion_matrix (np.array): A confusion matrix of testing data.
         
     Returns:
-        tuple: tuple of recall value per class
+        np.array: An array of recall values, one for each class.
     """
-    
-    recall_per_class = []
-    
-    # Loop recall calculation for each class/label
-    for label in range(4):
+    # Diagonal values of the confusion matrix are the correct predictions.
+    true_positive_counts = np.diag(confusion_matrix)
+    # Summing rows for the total actual instances of each class.
+    total_actual_per_class = np.sum(confusion_matrix, axis=1)
 
-        true_positives = confusion_matrix[label][label] # True values are rows, can sum row to find number of truly labelled instances
-        total_true = sum(confusion_matrix[label])
-        
-        recall = true_positives / total_true
-        recall_per_class.append(recall)
-        
-    return np.array(recall_per_class)
+    # Ensuring no cases of division by zero.
+    total_actual_per_class[total_actual_per_class == 0] = 1
+
+    recall_values = true_positive_counts / total_actual_per_class
+
+    return recall_values
+
 
 def find_f1(confusion_matrix):
-    """
-    Find out the recall
+    """ Calculate the F1-score for each class based on the confusion matrix.
 
     Args:
-        confusion_matrix (2D list): confusion matrix of testing data
+        confusion_matrix (np.array): A confusion matrix of testing data.
         
     Returns:
-        tuple: tuple of f1 value per class
+        np.array: An array of F1-score values, one for each class.
     """
-    # Use recall and precision functions to find F1
-    recall_per_class = find_recall(confusion_matrix)
-    precision_per_class = find_precision(confusion_matrix)
-    
-    # Calculate F1
-    f1_per_class = 2 * np.multiply(recall_per_class, precision_per_class) / np.add(recall_per_class, precision_per_class)
-    
-    return np.array(f1_per_class)
+    # Get recall and precision values using their respective functions.
+    recall_values = find_recall(confusion_matrix)
+    precision_values = find_precision(confusion_matrix)
+
+    # Ensure that the denominator isn't zero.
+    denominator = np.add(recall_values, precision_values)
+    denominator[denominator == 0] = 1  # avoid division by zero
+
+    # Calculate F1-score for each class.
+    f1_values = 2 * np.multiply(recall_values, precision_values) / denominator
+
+    return f1_values
+
 
 def cross_validation(data, k=10):
-    """
-    1. Shuffle the data
-    2. Split it into k-fold
-    3. Train k times with k-1 folds as training data
-    4. Evaluate (Confusion Matrix, Accuracy, Precision, Recall, F-1) each time with k fold as the testing data
+    """ Perform k-fold cross-validation on the data.
+
+    The model is evaluated using various metrics:
+    - Confusion Matrix
+    - Accuracy
+    - Precision rate per class
+    - Recall rate per class
+    - F-1 measure per class
+
+    The process:
+    1. Shuffle the data.
+    2. Split it into k-fold.
+    3. For each fold:
+       - Train using the other k-1 folds.
+       - Evaluate using the current fold.
 
     Args:
-        data (2D list): dataset
-        k (int, optional): number of folds. Defaults to 10.
+        data (np.array): The dataset to be used.
+        k (int): The number of desired folds. Defaults to 10.
 
     Returns:
-        tuple: (average_confusion_matrix, average_accuracy, average_precision_per_class, average_recall_per_class, F-1)
+        tuple: Metrics averaged across all folds including:
+               - np.array: average_confusion_matrix
+               - float: average_accuracy
+               - np.array: average_precision_per_class
+               - np.array: average_recall_per_class
+               - np.array: average_f1_per_class
     """
-    
-    shuffled_data = data
-    
-    # Setting the random seed
-    np.random.seed(0)
-    
-    # Randomly shuffling the dataset
-    np.random.shuffle(shuffled_data)
-    
-    # Separating into k folds
-    fold_size = len(shuffled_data) // k
-    remainder = len(shuffled_data) % k
-    folds = []
+    # Shuffle the data
+    shuffled_data = shuffle_data(data)
 
-    start = 0
-    for i in range(k):
-        end = start + fold_size + (1 if i < remainder else 0)
-        fold = shuffled_data[start:end]
-        folds.append(fold)
-        start = end
-        
-      
-    # Storing metrics
+    # Split into k-folds
+    folds = split_into_folds(shuffled_data, k)
+
+    # Lists to store evaluation metrics for each fold
     confusion_matrices = []
     accuracies = []
     precisions = []
     recalls = []
     f1s = []
 
-    for i in range(k): # REPLACED LEN(FOLDS) WITH K AS K == LEN(FOLDS) BY THE ABOVE FOR LOOP CONSTRUCTION
-        testing_data = folds[i]
+    # Compute evaluation metrics for each fold and update corresponding lists.
+    for test_fold_idx in range(k):
+        test_data, train_data = get_datasets_from_fold(folds, test_fold_idx)
+        # Train tree on train_data
+        trained_tree, _ = decision_tree_learning(train_data)
 
-        training_data = np.concatenate([arr for arr in folds[:i]+folds[i+1:]], axis=0)
-        #training_data = np.delete(folds, i, 0)[0]       THIS CODE GIVES AN ARRAY WITH SHAPE (200, 8), THE TRAINING_DATA SHAPE SHOULD BE (1800, 0). I REPLACED IT WITH THE ONE ABOVE, IT SHOULD BE FINE NOW BUT GIVE IT A LOOK.
+        # Compute metrics.
+        (confusion_matrix,
+         accuracy,
+         precision,
+         recall,
+         f1) = compute_metrics(test_data, trained_tree)
 
-        training_tree, _ = decision_tree_learning(training_data) # HAVING LEARNED THIS TRICK FROM FADI, SINCE WE DON'T NEED THE DEPTH VARIABLE I REPLACED DEPTH VARIABLE WITH _ ;)
-        
-        confusion_matrix = find_confusion_matrix(testing_data, training_tree)
-        accuracy = find_accuracy(testing_data, training_tree) # ADDED THIS CODE
-        precision = find_precision(confusion_matrix)  # ADDED THIS CODE. HAVEN'T CHECKED IF THE FIND_PRECISION FUNCTION IS CORRECT THO
-        recall = find_recall(confusion_matrix)  # ADDED THIS CODE. HAVEN'T CHECKED IF THE FIND_PRECISION FUNCTION IS CORRECT THO
-        f1 = find_f1(confusion_matrix) 
-        
-        confusion_matrices.append(confusion_matrix)   
-        # APPENDED THE METRICS
+        # Update corresponding lists.
+        confusion_matrices.append(confusion_matrix)
         accuracies.append(accuracy)
         precisions.append(precision)
         recalls.append(recall)
         f1s.append(f1)
-        
-    # Average the Metrics across all folds
-    average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
-    average_accuracy = sum(accuracies)/len(accuracies)
-    average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
-    average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
-    average_f1 = np.sum(f1s, axis=0) / len(f1s)
-    
-    print(f"The average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe average precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
+
+    # Average the metrics across the k folds
+    averaged_metrics = get_metrics_average(confusion_matrices,
+                                           accuracies,
+                                           precisions,
+                                           recalls,
+                                           f1s)
+
+    print_metrics(averaged_metrics)
+
+    return averaged_metrics
 
 
-# Step 4:
-def is_node_connected_to_leaves(node):
+def shuffle_data(data):
+    """ Shuffle the given dataset in-place.
+
+    Args:
+        data (np.array): The dataset to be shuffled.
+
+    Returns:
+        np.array: The shuffled dataset.
     """
-    Check if a node is directly connected to two leaves.
+    shuffled_data = data.copy()
+    # Setting the seed for reproducibility.
+    np.random.seed(0)
+    # Randomly shuffle of the dataset.
+    np.random.shuffle(shuffled_data)
+    return shuffled_data
+
+
+def split_into_folds(data, k):
+    """ Split the given dataset into k consecutive folds.
+
+    If the dataset size is not perfectly divisible by k, the initial
+    folds will have one additional element.
+
+    Args:
+        data (np.array): The dataset to be split.
+        k (int): The number of desired folds.
+
+    Returns:
+        list of np.array: List of data folds.
+    """
+    fold_size = len(data) // k
+    remainder = len(data) % k
+
+    folds = []
+    start = 0
+    for i in range(k):
+        end = start + fold_size + (1 if i < remainder else 0)
+        fold = data[start:end]
+        folds.append(fold)
+        start = end
+
+    return folds
+
+
+def get_datasets_from_fold(folds, test_fold_idx):
+    """ Extract test and training datasets from the fold in question.
+
+    Given the list of data folds and an index indicating the test fold, this
+    function separates the test dataset from the remaining training dataset.
+
+    Args:
+        folds (list of np.array): List of data arrays, each representing a fold.
+        test_fold_idx (int): Index of the fold to be used for testing.
+
+    Returns:
+        tuple:
+            - np.array: test_data - Data for testing.
+            - np.array: train_data - Concatenated data from all other folds
+                                     for training.
+    """
+    test_data = folds[test_fold_idx]
+    train_data = np.concatenate(
+        folds[:test_fold_idx] + folds[test_fold_idx + 1:], axis=0
+    )
+    return test_data, train_data
+
+
+def compute_metrics(test_data, trained_tree):
+    """ Evaluate metrics using test data and a trained tree.
+
+    Args:
+        test_data (np.array): Test data array.
+        trained_tree: A trained decision tree.
+                      See `decision_tree_learning` for structure details.
+
+    Returns:
+        tuple:
+            - np.array: confusion_matrix
+            - float: accuracy
+            - np.array: precision (per class)
+            - np.array: recall (per class)
+            - np.array: f1 (per class)
+    """
+    confusion_matrix = find_confusion_matrix(test_data, trained_tree)
+    accuracy = find_accuracy(test_data, trained_tree)
+    precision = find_precision(confusion_matrix)
+    recall = find_recall(confusion_matrix)
+    f1 = find_f1(confusion_matrix)
+    return confusion_matrix, accuracy, precision, recall, f1
+
+
+def get_metrics_average(confusion_matrices,
+                        accuracies,
+                        precisions,
+                        recalls,
+                        f1s):
+    """ Compute average metrics across the k-folds.
+
+    Args:
+        confusion_matrices (list of np.array): Confusion matrices list.
+        accuracies (list of float): Accuracies list.
+        precisions (list of np.array): Precisions list.
+        recalls (list of np.array): Recalls list.
+        f1s (list of np.array): F1 scores list.
+
+    Returns:
+        tuple: Averaged metrics:
+            - np.array: average_confusion_matrix
+            - float: average_accuracy
+            - np.array: average_precision_per_class
+            - np.array: average_recall_per_class
+            - np.array: average_f1_per_class
+    """
+    average_confusion_matrix = np.mean(confusion_matrices, axis=0)
+    average_accuracy = np.mean(accuracies)
+    average_precision_per_class = np.mean(precisions, axis=0)
+    average_recall_per_class = np.mean(recalls, axis=0)
+    average_f1_per_class = np.mean(f1s, axis=0)
+
+    return (
+        average_confusion_matrix,
+        average_accuracy,
+        average_precision_per_class,
+        average_recall_per_class,
+        average_f1_per_class
+    )
+
+
+def print_metrics(metrics):
+    """ Display the computed metrics in a formatted manner.
+
+    Args:
+        metrics (tuple): Metrics to display (confusion_matrix, accuracy,
+                        precision, recall, f1).
+
+    Returns:
+        None
+    """
+    confusion_matrix, accuracy, precision, recall, f1 = metrics
+    print(f"The average confusion matrix is:\n{confusion_matrix}\n"
+          f"The average accuracy is: {accuracy}\n"
+          f"The average precision per class is: {precision}\n"
+          f"The average recall per class is: {recall}\n"
+          f"The average f1 per class is: {f1}")
+
+
+
+
+# Step 4: Pruning (and evaluation again)
+def is_node_connected_to_leaves(node):
+    """ Check if a node is directly connected to two leaves.
+
+    Args:
+        node (dict): The node to check.
+
+    Returns:
+        bool: True if the node is directly connected to two leaves,
+              False otherwise.
     """
     return not node["leaf"] and node["left"]["leaf"] and node["right"]["leaf"]
 
 
-def performance_difference(tree, clean_test_data, noisy_test_data):      # CHANGED VARIABLE NAMES FOR CLARITY
-    """
-    Helper function to compute performance difference.
-    """
-    return abs(find_accuracy(clean_test_data, tree) - find_accuracy(noisy_test_data, tree))  
+def prune_tree(root, node, node_data_subset, validation_data):
+    """ Prune the tree based on validation accuracy.
 
-
-def prune_tree(root, node, full_train_data, subset_train_data, validation_data):
-    """
-    Prune the tree based on validation error.
+    Args:
+        root (dict): The root of the decision tree.
+                     See `decision_tree_learning` for structure details.
+        node (dict): The current node to consider for pruning.
+        node_data_subset (np.array): Training data subset for the current node.
+        validation_data (np.array): Validation data for the tree.
     """
     # Base Case: If tree is a leaf, no pruning needed.
     if node["leaf"]:
-        return root
-    
+        return
+
     # Recursive Case: Check left and right children.
     if not node["left"]["leaf"]:
-        left_data = get_left_split_data(subset_train_data, node["feature"], node["value"])
-        prune_tree(root, node["left"], full_train_data, left_data, validation_data)
+        left_data = get_left_split_data(node_data_subset,
+                                        node["feature"],
+                                        node["value"])
+        prune_tree(root, node["left"], left_data, validation_data)
     if not node["right"]["leaf"]:
-        right_data = get_right_split_data(subset_train_data, node["feature"], node["value"])
-        prune_tree(root, node["right"], full_train_data, right_data, validation_data)
-    
+        right_data = get_right_split_data(node_data_subset,
+                                          node["feature"],
+                                          node["value"])
+        prune_tree(root, node["right"], right_data, validation_data)
+
     # Check if current node is connected to two leaves
     if is_node_connected_to_leaves(node):
         # Now that we are at a parent node of two leaf children nodes:
-        # Calculate the performance difference between train and validation data before pruning:
-        current_accuracy = find_accuracy(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE WITH EVALUATE FUNCTION
+        # Calculate the accuracy before pruning:
+        current_accuracy = find_accuracy(validation_data, root)
 
         # Store the entire node to revert if needed:
         original_node = node.copy()
 
-        # Pruning: replace the parent node by a leaf node with the majority label from the current training data subset.
-        # Calculate the majority label:
-        labels = subset_train_data[:, -1]
+        # Pruning: replace the parent node by a leaf node with the
+        # majority label from the current training data subset.
+        # > Calculate the majority label:
+        labels = node_data_subset[:, -1]
         labels, counts = np.unique(labels, return_counts=True)
         majority_label = labels[np.argmax(counts)]
 
-        # Convert the current node to a leaf (modifications propagate to the root since both reference the same object).
+        # > Convert the current node to a leaf (modifications propagate to
+        # the root since both reference the same object).
         node.clear()
         node.update({
             "leaf": True,
             "label": majority_label
         })
 
-        # Calculate the new performance difference between train and validation data after pruning:
-        new_accuracy = find_accuracy(validation_data, root) # REPLACED PERFORMANCE_DIFFERENCE FUNCTION WITH EVALUATE FUNCTION
-        #print("pruning")
+        # Calculate the new accuracy after pruning:
+        new_accuracy = find_accuracy(validation_data, root)
 
-        # Revert pruning if it didn't decrease the difference:
-        if new_accuracy < current_accuracy: 	# Big difference if > or >=  *see remarks at the end
+        # Revert pruning if it didn't increase or result in the same accuracy:
+        if new_accuracy < current_accuracy:
             node.clear()
             node.update(original_node)
-            #print("but pruning unsuccessful")
 
 
 def find_depth(node):
-    """
-    Compute the depth of the tree rooted at the given node.
+    """ Compute the depth of the tree rooted at the given node.
+
+    Args:
+        node (dict): The node to start computing depth from.
+                     See `decision_tree_learning` for structure details.
+
+    Returns:
+        int: The depth of the tree.
     """
     # Base case: if it's a leaf, depth is 0.
     if node['leaf']:
@@ -415,114 +642,160 @@ def find_depth(node):
     return 1 + max(left_depth, right_depth)
 
 
+def cross_validation_after_pruning(data, k=10):
+    """ Perform a nested k-fold cross-validation with pruning on the data.
+
+    The decision tree model undergoes pruning via an additional layer of
+    cross-validation. This leads to 90 pruned trees across the k-folds
+    (k x (k-1) = 10 x 9) as for each outer fold, 9 inner folds are used to
+    prune the tree. The model is then assessed using:
+
+    - Confusion Matrix
+    - Accuracy
+    - Precision rate per class
+    - Recall rate per class
+    - F-1 measure per class
+
+    Process:
+    1. Shuffle the data.
+    2. Split it into k-fold.
+    3. For each fold:
+       - Split remaining data into k-1 inner folds.
+       - For each inner fold:
+          a. Train with the other k-2 folds.
+          b. Validate on current fold and prune tree.
+          - Evaluate pruned tree using the outer test fold.
+
+    Args:
+        data (np.array): Dataset to be used.
+        k (int): Desired number of folds. Defaults to 10.
+
+    Returns:
+        tuple:
+               - np.array: average_confusion_matrix
+               - float: average_accuracy
+               - np.array: average_precision_per_class
+               - np.array: average_recall_per_class
+               - np.array: average_f1_per_class
+        tuple:
+               - float: Average pre-pruning tree depth
+               - float: Average post-pruning tree depth
+    """
+    # Shuffle the data
+    shuffled_data = shuffle_data(data)
+
+    # Split into k-folds
+    folds = split_into_folds(shuffled_data, k)
+
+    # Lists to store evaluation metrics for each fold
+    confusion_matrices = []
+    accuracies = []
+    precisions = []
+    recalls = []
+    f1s = []
+    pre_pruning_depths = []
+    post_pruning_depths = []
+
+    # Compute evaluation metrics for each fold and update corresponding lists.
+    for test_fold_idx in range(k):
+        test_data, inner_data = get_datasets_from_fold(folds,
+                                                        test_fold_idx)
+        inner_folds = split_into_folds(inner_data, k - 1)
+        for valid_fold_idx in range(k - 1):
+            valid_data, train_data = get_datasets_from_fold(inner_folds,
+                                                            valid_fold_idx)
+
+            # Train tree on train_data and record its depth (before pruning)
+            tree, pre_pruning_depth = decision_tree_learning(train_data)
+            pre_pruning_depths.append(pre_pruning_depth)
+
+            # Prune the tree using training and validation data
+            prune_tree(tree, tree, train_data, valid_data)
+
+            # Store post-pruning depth
+            post_pruning_depth = find_depth(tree)
+            post_pruning_depths.append(post_pruning_depth)
+
+            # Compute metrics for pruned tree
+            (confusion_matrix,
+             accuracy,
+             precision,
+             recall,
+             f1) = compute_metrics(test_data, tree)
+
+            confusion_matrices.append(confusion_matrix)
+            accuracies.append(accuracy)
+            precisions.append(precision)
+            recalls.append(recall)
+            f1s.append(f1)
+
+    # Average the metrics across the (k x (k-1)) folds
+    averaged_metrics = get_metrics_average(confusion_matrices,
+                                           accuracies,
+                                           precisions,
+                                           recalls,
+                                           f1s)
+    averaged_depths = (np.mean(pre_pruning_depths),
+                       np.mean(post_pruning_depths))
+
+    # Print averaged metrics along with average tree depths
+    print(f"The average pre-pruning tree depth is: {averaged_depths[0]}")
+    print(f"The average post-pruning tree depth is: {averaged_depths[1]}")
+    print_metrics(averaged_metrics)
+
+    return averaged_metrics, averaged_depths
+
+
 
 
 # Bonus Part: Tree Visualisation
-# Define a list of colors.
-COLORS = ["blue", "green", "red", "cyan", "magenta", "orange", "black", "purple", "brown", "gray", "olive"]
+def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None,
+              save_filename='../tree_plot.png'):
+    COLORS = ["blue", "green", "red", "cyan", "magenta", "orange", "black",
+              "purple", "brown", "gray", "olive"]
 
-def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None):
     if ax is None:
-        fig, ax = plt.subplots(figsize=(20, 10))
+        fig, ax = plt.subplots(figsize=(22, 10))
         ax.axis('off')
         x_coord_dict = {"next_x": 0}
-    
+
     color = COLORS[depth % len(COLORS)]
 
     # If leaf, plot it and return
     if tree["leaf"]:
         x = x_coord_dict["next_x"]
         x_coord_dict["next_x"] += 1
-        ax.text(x, y, f"Leaf: {int(tree['label'])}", bbox=dict(boxstyle="round,pad=0.3", edgecolor=color, facecolor="aliceblue"), ha='center', fontsize=4)
+        ax.text(
+            x, y, f"Leaf: {int(tree['label'])}",
+            bbox=dict(boxstyle="round,pad=0.3", edgecolor=color,
+                      facecolor="aliceblue"),
+            ha='center', fontsize=6
+        )
         return x
 
     # Post-order traversal: First process children
-    left_x = plot_tree(tree["left"], y-1, depth+1, ax, x_coord_dict)
-    right_x = plot_tree(tree["right"], y-1, depth+1, ax, x_coord_dict)
+    left_x = plot_tree(tree["left"], y - 1, depth + 1, ax, x_coord_dict)
+    right_x = plot_tree(tree["right"], y - 1, depth + 1, ax, x_coord_dict)
 
     # Compute parent's x as average of children's x
     x = (left_x + right_x) / 2.0
+    ax.text(
+        x, y, f"x{tree['feature']} < {tree['value']}",
+        bbox=dict(boxstyle="round,pad=0.3", edgecolor=color,
+                  facecolor="aliceblue"),
+        ha='center', fontsize=6
+    )
+    ax.plot([x, left_x], [y - 0.1, y - 1 + 0.1], color)
+    ax.plot([x, right_x], [y - 0.1, y - 1 + 0.1], color)
 
-    ax.text(x, y, f"x{tree['feature']} < {tree['value']}", bbox=dict(boxstyle="round,pad=0.3", edgecolor=color, facecolor="aliceblue"), ha='center', fontsize=4)
-    
-    ax.plot([x, left_x], [y-0.1, y-1+0.1], color)
-    ax.plot([x, right_x], [y-0.1, y-1+0.1], color)
-    
     if depth == 0:
+        plt.savefig(save_filename, dpi=300)  # Save with high resolution
         plt.show()
-    
+
     return x
 
-# INCOMPLETE
-def cross_validation_after_pruning(data, k=10):    #WE NEED TO CHANGE THE PRUNE_TREE FUNCTION SO THAT IT TRACKS THE DEPTH. IT WILL BE NEEDED FOR DEPTH ANALYSIS (BEFORE VS AFTER PRUNING)
-    shuffled_data = data
-    
-    # Setting the random seed
-    np.random.seed(0)
-    
-    # Randomly shuffling the dataset
-    np.random.shuffle(shuffled_data)
-    
-    # Separating into k folds
-    fold_size = len(shuffled_data) // k
-    remainder = len(shuffled_data) % k
-    folds = []
 
-    start = 0
-    for i in range(k):
-        end = start + fold_size + (1 if i < remainder else 0)
-        fold = shuffled_data[start:end]
-        folds.append(fold)
-        start = end
-        
-      
-    # Storing metrics
-    pre_pruning_depths = []
-    post_pruning_depths = []
-    confusion_matrices = []    
-    accuracies = []
-    precisions = []
-    recalls = []
-    f_1s = []
-    models = []
-    for test_idx in range(k): 
-        test_data = folds[i]
-       
-        for valid_idx in range(k-1):
-            new_folds = folds[ :test_idx] + folds[test_idx+1: ]
-            valid_data = new_folds[valid_idx]
-            train_data = np.concatenate([arr for arr in new_folds[:valid_idx]+new_folds[valid_idx+1:]], axis=0)
-            tree, depth = decision_tree_learning(train_data)
-            pre_pruning_depths.append(depth)
-            node = tree
-            sub_train_data = train_data.copy() # FADI IS THIS NEEDED? YOU DID THAT STEP WHEN YOU CALLED THE PRUNE_TREE FUNCTION, BUT IS IT NECESSARY? (same above)
-            prune_tree(tree, node, train_data, sub_train_data, valid_data)
-            pruned_tree = tree
-            pruned_tree_depth = find_depth(pruned_tree)
-            post_pruning_depths.append(pruned_tree_depth)
 
-            final_accuracy = find_accuracy(test_data, pruned_tree)
-            confusion_matrix = find_confusion_matrix(test_data, pruned_tree)
-            precision = find_precision(confusion_matrix)
-            recall = find_recall(confusion_matrix)
-            f_1 = find_f1(confusion_matrix)
-            
-            confusion_matrices.append(confusion_matrix)
-            accuracies.append(final_accuracy)
-            precisions.append(precision)
-            recalls.append(recall)
-            f_1s.append(f_1)
-            models.append(pruned_tree)
-    
-    average_pre_pruning_depth = sum(pre_pruning_depths) / len(pre_pruning_depths)
-    average_post_pruning_depth = sum(post_pruning_depths) / len(post_pruning_depths)
-    average_confusion_matrix = np.sum(confusion_matrices, axis=0) / len(confusion_matrices)
-    average_accuracy = sum(accuracies)/len(accuracies)
-    average_precision_per_class = np.sum(precisions, axis=0) / len(precisions)
-    average_recall_per_class = np.sum(recalls, axis=0) / len(recalls)
-    average_f1 = np.sum(f_1s, axis=0) / len(f_1s)
-
-    print(f"The average pre-pruning tree depth is: {average_pre_pruning_depth}\nThe average post-pruning tree depth is:{average_post_pruning_depth}\nThe average confusion matrix is:\n{average_confusion_matrix}\nThe average accuracy is: {average_accuracy}\nThe average precision per class is: {average_precision_per_class}\nThe average recall per class is: {average_recall_per_class}\nThe average f_1 per class is: {average_f1} ")
 
 if __name__ == "__main__":
     #a, b, c, d, e = cross_validation(clean_data)
@@ -531,31 +804,31 @@ if __name__ == "__main__":
     #print(f"Precision: {c}")
     #print(f"Recall: {d}")
     #print(f"F-1: {e}")
-    print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
-    cross_validation(clean_data)
-    print()
-    print("PRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
-    cross_validation(noisy_data)
-    print()
-    print("POST-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
-    cross_validation_after_pruning(clean_data)
-    print()
-    print("POST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
-    cross_validation_after_pruning(noisy_data)
+    # print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    # cross_validation(clean_data)
+    # print()
+    # print("PRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
+    # cross_validation(noisy_data)
+    # print()
+    # print("POST-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    # cross_validation_after_pruning(clean_data)
+    # print()
+    # print("POST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
+    # cross_validation_after_pruning(noisy_data)
 
 
 #    # Example usage:
-    #train_data = clean_data
-#    validation_data = noisy_data
+    train_data = clean_data
+    validation_data = noisy_data
     
     #train_data = data_clean[:int(len(clean_data) * 0.7)]
     #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
     #test_data = data_clean[int(len(clean_data) * 0.85):]
     
     # Create the decision tree
-    
-    #tree, depth = decision_tree_learning(train_data)
-    #print(f"The depth after creating tree: {depth}")
+
+    tree, depth = decision_tree_learning(train_data)
+    print(f"The depth after creating tree: {depth}")
 
     #depth = tree_depth(tree)
     #print(f"The depth of the tree calculated by the tree_depth function is: {depth}")
@@ -565,9 +838,9 @@ if __name__ == "__main__":
 #    print("Accuracy of original tree on train_data:", accuracy)
 #    accuracy = find_accuracy(validation_data, tree)
 #    print("Accuracy of original tree on validation_data:", accuracy)
-#    #pprint.pp(tree)
-#    print()
-#    plot_tree(tree)
+#     pprint.pp(tree)
+#     print()
+    plot_tree(tree)
     
      # Prune the tree
 #    node = tree
