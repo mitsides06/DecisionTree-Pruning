@@ -11,15 +11,29 @@ Team members:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pprint
-import random
 
 
 
 
 # Step 1: Loading data
-clean_data = np.loadtxt("wifi_db/clean_dataset.txt")
-noisy_data = np.loadtxt("wifi_db/noisy_dataset.txt")
+def load_data(filepath):
+    """ Load dataset from the specified path.
+
+    Args:
+        filepath (str): Path to the dataset.
+
+    Returns:
+        np.array: The loaded dataset.
+    """
+    try:
+        data = np.loadtxt(filepath)
+        return data
+    except FileNotFoundError:
+        print(f"Filepath {filepath} not found.")
+        exit(1)
+    except OSError as e:
+        print(f"Unexpected error occurred while loading data from {filepath}: {e}")
+        exit(1)
 
 
 
@@ -202,7 +216,7 @@ def classify(instance, tree):
         return classify(instance, tree["right"])
 
 
-def find_accuracy(test_data, tree):     # == evaluate(test_db, trained_tree)
+def find_accuracy(test_data, tree):
     """ Evaluate the accuracy of the decision tree on the provided test data.
 
     Args:
@@ -324,7 +338,7 @@ def find_f1(confusion_matrix):
     return f1_values
 
 
-def cross_validation(data, k=10):
+def cross_validation_before_pruning(data, k=10):
     """ Perform k-fold cross-validation on the data.
 
     The model is evaluated using various metrics:
@@ -377,7 +391,7 @@ def cross_validation(data, k=10):
          accuracy,
          precision,
          recall,
-         f1) = compute_metrics(test_data, trained_tree)
+         f1) = evaluate(test_data, trained_tree)
 
         # Update corresponding lists.
         confusion_matrices.append(confusion_matrix)
@@ -465,8 +479,12 @@ def get_datasets_from_fold(folds, test_fold_idx):
     return test_data, train_data
 
 
-def compute_metrics(test_data, trained_tree):
-    """ Evaluate metrics using test data and a trained tree.
+def evaluate(test_data, trained_tree):
+    """ Evaluate the trained tree's performance on the test data.
+
+    Compute the evaluation metrics based on the trained tree and the test
+    data. These metrics are: the confusion matrix, the accuracy, the precision
+    per class, the recall per class, and the f1 measure per class.
 
     Args:
         test_data (np.array): Test data array.
@@ -721,7 +739,7 @@ def cross_validation_after_pruning(data, k=10):
              accuracy,
              precision,
              recall,
-             f1) = compute_metrics(test_data, tree)
+             f1) = evaluate(test_data, tree)
 
             confusion_matrices.append(confusion_matrix)
             accuracies.append(accuracy)
@@ -749,14 +767,14 @@ def cross_validation_after_pruning(data, k=10):
 
 
 # Bonus Part: Tree Visualisation
-def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None,
-              save_filename='../tree_plot.png'):
+def plot_tree(tree, y=0, depth=0, axis=None, x_coord_dict=None,
+              save_filename='./tree_plot.png'):
     COLORS = ["blue", "green", "red", "cyan", "magenta", "orange", "black",
               "purple", "brown", "gray", "olive"]
 
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(22, 10))
-        ax.axis('off')
+    if axis is None:
+        fig, axis = plt.subplots(figsize=(22, 10))
+        axis.axis('off')
         x_coord_dict = {"next_x": 0}
 
     color = COLORS[depth % len(COLORS)]
@@ -765,7 +783,7 @@ def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None,
     if tree["leaf"]:
         x = x_coord_dict["next_x"]
         x_coord_dict["next_x"] += 1
-        ax.text(
+        axis.text(
             x, y, f"Leaf: {int(tree['label'])}",
             bbox=dict(boxstyle="round,pad=0.3", edgecolor=color,
                       facecolor="aliceblue"),
@@ -774,19 +792,19 @@ def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None,
         return x
 
     # Post-order traversal: First process children
-    left_x = plot_tree(tree["left"], y - 1, depth + 1, ax, x_coord_dict)
-    right_x = plot_tree(tree["right"], y - 1, depth + 1, ax, x_coord_dict)
+    left_x = plot_tree(tree["left"], y - 1, depth + 1, axis, x_coord_dict)
+    right_x = plot_tree(tree["right"], y - 1, depth + 1, axis, x_coord_dict)
 
     # Compute parent's x as average of children's x
     x = (left_x + right_x) / 2.0
-    ax.text(
+    axis.text(
         x, y, f"x{tree['feature']} < {tree['value']}",
         bbox=dict(boxstyle="round,pad=0.3", edgecolor=color,
                   facecolor="aliceblue"),
         ha='center', fontsize=6
     )
-    ax.plot([x, left_x], [y - 0.1, y - 1 + 0.1], color)
-    ax.plot([x, right_x], [y - 0.1, y - 1 + 0.1], color)
+    axis.plot([x, left_x], [y - 0.1, y - 1 + 0.1], color)
+    axis.plot([x, right_x], [y - 0.1, y - 1 + 0.1], color)
 
     if depth == 0:
         plt.savefig(save_filename, dpi=300)  # Save with high resolution
@@ -798,82 +816,33 @@ def plot_tree(tree, y=0, depth=0, ax=None, x_coord_dict=None,
 
 
 if __name__ == "__main__":
-    #a, b, c, d, e = cross_validation(clean_data)
-    #print(f"Confusion Matrices: {a}")
-    #print(f"Accuracy: {b}")
-    #print(f"Precision: {c}")
-    #print(f"Recall: {d}")
-    #print(f"F-1: {e}")
-    # print("PRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
-    # cross_validation(clean_data)
-    # print()
-    # print("PRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
-    # cross_validation(noisy_data)
-    # print()
-    # print("POST-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
-    # cross_validation_after_pruning(clean_data)
-    # print()
-    # print("POST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
-    # cross_validation_after_pruning(noisy_data)
+    # Load the clean and noisy datasets:
+    clean_data_filepath = "wifi_db/clean_dataset.txt"
+    noisy_data_filepath = "wifi_db/noisy_dataset.txt"
+    clean_data = load_data(clean_data_filepath)
+    noisy_data = load_data(noisy_data_filepath)
 
 
-#    # Example usage:
+    # Pre-pruning evaluation on clean data:
+    print("\n\nPRE-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    cross_validation_before_pruning(clean_data)
+
+    # Pre-pruning evaluation on noisy data:
+    print("\n\nPRE-PRUNING EVALUATION METRICS ON NOISY DATA:\n")
+    cross_validation_before_pruning(noisy_data)
+
+    # Post-pruning evaluation on clean data:
+    print("\n\nPOST-PRUNING EVALUATION METRICS ON CLEAN DATA:\n")
+    cross_validation_after_pruning(clean_data)
+
+    # Post-pruning evaluation on noisy data:
+    print("\n\nPOST-PRUNING EVALUATION METRICS ON NOISY DATA:\n ")
+    cross_validation_after_pruning(noisy_data)
+
+
+    # Training and plotting decision tree on the entire clean dataset:
     train_data = clean_data
-    validation_data = noisy_data
-    
-    #train_data = data_clean[:int(len(clean_data) * 0.7)]
-    #validation_data = data_clean[int(len(clean_data) * 0.7):int(len(clean_data) * 0.85)]
-    #test_data = data_clean[int(len(clean_data) * 0.85):]
-    
-    # Create the decision tree
-
     tree, depth = decision_tree_learning(train_data)
-    print(f"The depth after creating tree: {depth}")
-
-    #depth = tree_depth(tree)
-    #print(f"The depth of the tree calculated by the tree_depth function is: {depth}")
-    
-     # Evaluate the original tree
-#    accuracy = find_accuracy(train_data, tree)
-#    print("Accuracy of original tree on train_data:", accuracy)
-#    accuracy = find_accuracy(validation_data, tree)
-#    print("Accuracy of original tree on validation_data:", accuracy)
-#     pprint.pp(tree)
-#     print()
+    print("\n\nThe tree trained on the entire clean dataset has been plotted. "
+          f"It has a depth of {depth}.")
     plot_tree(tree)
-    
-     # Prune the tree
-#    node = tree
-#    subset_train_data = train_data.copy()
-#    prune_tree(tree, node, train_data, subset_train_data, validation_data)
-    
-     # Evaluate the pruned tree
-#    accuracy = find_accuracy(train_data, tree)
-#    print("Accuracy of pruned tree on train_data:", accuracy)
-#    accuracy = find_accuracy(validation_data, tree)
-#    print("Accuracy of pruned tree on validation_data:", accuracy)
-#    #pprint.pp(tree)
-#    plot_tree(tree)
-
-
-
-"""
-*Remarks: if >, we get pruning but overall accuracy is reduced but not their difference with accuracies of 0.997[training_data] and 0.915[validation_data]
-		  if >=, tree says the same with accuracy of 1.0[training_data] and 0.918[validation_data]. Note that in both cases accuracy difference is the same (=0.082)
-
-quoting:
-'The behavior you observed is consistent with the nature of pruning. Pruning is designed to reduce overfitting. By pruning the tree, you're making the model less complex, and therefore, it may not fit the training data as closely as before. This can lead to a decrease in training accuracy. The validation accuracy might also decrease, but the hope is that it doesn't decrease as much as the training accuracy, thereby reducing the gap (difference) between the two.
-
-If you pruned with > and observed a decrease in both training and validation accuracy, but the difference between the two remains the same, it means the pruning made the model simpler without necessarily making the model generalize better to the validation set.
-
-A few things to consider:
-
-1) Pruning Objective: If your objective was strictly to reduce the difference between training and validation accuracy (even at the expense of a slightly lower accuracy), then the pruning did its job. However, if you were hoping for an increase in validation accuracy, you might need to adjust your pruning criteria or consider other approaches.
-
-2) Over-Pruning: It's possible to over-prune, which would remove too many nodes and make the tree too simple, losing important decision boundaries. You can experiment with less aggressive pruning criteria.
-
-3) Other Techniques: If pruning doesn't yield the desired results, consider other regularization techniques or even ensemble methods like random forests or gradient boosting, which are inherently less prone to overfitting.
-
-Remember, the ultimate goal of machine learning models is good generalization performance, not perfect training performance. The reduced gap indicates better generalization, even if the absolute accuracies are slightly lower.'
-"""
-
