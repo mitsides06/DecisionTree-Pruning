@@ -1,2 +1,4 @@
 .idea/
 tree_plot.png
+**/__pycache__
+**/*.pyc
